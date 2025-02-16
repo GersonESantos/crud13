@@ -59,6 +59,21 @@ app.get("/clientes", (req, res) => {
   });
 });
 
+app.put("/clientes/:id", upload.single("imagem"), (req, res) => {
+  const { id } = req.params;
+  const { nome, email, telefone, afinidade } = req.body;
+  const imagem = req.file ? req.file.filename : null;
+
+  const sql = "UPDATE cliente SET nome = ?, email = ?, telefone = ?, afinidade = ?, imagem = ? WHERE id = ?";
+  db.query(sql, [nome, email, telefone, afinidade, imagem, id], (err, result) => {
+    if (err) {
+      console.error("Erro ao atualizar cliente:", err);
+      return res.status(500).send("Erro ao atualizar cliente.");
+    }
+    res.send("Cliente atualizado com sucesso!");
+  });
+});
+
 // Rota para servir o HTML
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html")); // Envia o arquivo index.html como resposta

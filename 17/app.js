@@ -1,70 +1,108 @@
-const express = require("express"); // Importa o framework Express
-const mysql = require("mysql2"); // Importa o módulo MySQL para Node.js
-const cors = require("cors"); // Importa o módulo CORS para permitir requisições de diferentes origens
-const bodyParser = require("body-parser"); // Importa o body-parser para parsear o corpo das requisições
-const multer = require("multer"); // Importa o multer para upload de arquivos
-const path = require("path"); // Importa o path para manipulação de caminhos de arquivos
+const express = require("express");
+const mysql = require("mysql2");
+const cors = require("cors");
+const bodyParser = require("body-parser");
+const multer = require("multer");
+const path = require("path");
 
-const app = express(); // Cria uma instância do Express
-app.use(cors()); // Habilita o CORS
-app.use(bodyParser.json()); // Configura o body-parser para parsear JSON
-app.use(express.static("public")); // Serve arquivos estáticos da pasta "public"
-app.use("/uploads", express.static("uploads")); // Serve arquivos estáticos da pasta "uploads"
+const app = express();
+app.use(cors());
+app.use(bodyParser.json());
+app.use(express.static("public"));
+app.use("/uploads", express.static("uploads"));
 
 const db = mysql.createConnection({
   host: "localhost",
   user: "root",
   password: "Gabibi89*",
   database: "projeto"
-}); // Cria uma conexão com o banco de dados MySQL
+});
 
 db.connect(err => {
   if (err) throw err;
   console.log("Banco de dados conectado!");
-}); // Conecta ao banco de dados e exibe uma mensagem no console
+});
 
-// Configuração do upload de imagens
 const storage = multer.diskStorage({
-  destination: "./uploads", // Define o destino dos arquivos enviados
+  destination: "./uploads",
   filename: (req, file, cb) => {
-    cb(null, file.originalname); // Mantém o nome original do arquivo
+    cb(null, Date.now() + path.extname(file.originalname)); // Adiciona timestamp ao nome do arquivo
   }
 });
 
-const upload = multer({ storage }); // Cria uma instância do multer com a configuração de armazenamento
+const upload = multer({ storage });
 
-// Rota para criar cliente
 app.post("/clientes", upload.single("imagem"), (req, res) => {
-  const { nome, email, telefone, afinidade } = req.body; // Extrai os dados do corpo da requisição
-  const imagem = req.file ? req.file.filename : null; // Obtém o nome do arquivo enviado, se houver
+  const { nome, email, telefone, afinidade } = req.body;
+  const imagem = req.file ? req.file.filename : null;
 
-  const sql = "INSERT INTO cliente (nome, email, telefone, afinidade, imagem) VALUES (?, ?, ?, ?, ?)"; // SQL para inserir um novo cliente
+  const sql = "INSERT INTO cliente (nome, email, telefone, afinidade, imagem) VALUES (?, ?, ?, ?, ?)";
   db.query(sql, [nome, email, telefone, afinidade, imagem], (err, result) => {
     if (err) {
       console.error("Erro ao inserir no banco:", err);
-      return res.status(500).send("Erro ao cadastrar cliente."); // Retorna erro se a inserção falhar
+      return res.status(500).send("Erro ao cadastrar cliente.");
     }
-    res.send("Cliente cadastrado com sucesso!"); // Retorna sucesso se a inserção for bem-sucedida
+    res.send("Cliente cadastrado com sucesso!");
   });
 });
 
-// Rota para listar clientes
 app.get("/clientes", (req, res) => {
   db.query("SELECT * FROM cliente", (err, results) => {
     if (err) {
       console.error("Erro ao buscar clientes:", err);
-      return res.status(500).send("Erro ao buscar clientes."); // Retorna erro se a consulta falhar
+      return res.status(500).send("Erro ao buscar clientes.");
     }
-    res.json(results); // Retorna os resultados da consulta em formato JSON
+    res.json(results);
   });
 });
 
-// Rota para servir o HTML
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html")); // Envia o arquivo index.html como resposta
+app.get("/clientes/:id", (req, res) => {
+  const { id } = req.params;
+  const sql = "SELECT * FROM cliente WHERE id = ?";
+  db.query(sql, [parseInt(id, 10)], (err, result) => {
+    if (err) {
+      console.error("Erro ao buscar cliente:", err);
+      return res.status(500).send("Erro ao buscar cliente.");
+    }
+    if (result.length === 0) {
+      return res.status(404).send("Cliente não encontrado");
+    }
+    res.json(result[0]);
+  });
 });
 
-// Inicia o servidor na porta 8080
+app.put("/clientes/:id", upload.single("imagem"), (req, res) => {
+  const { id } = req.params;
+  const { nome, email, telefone, afinidade } = req.body;
+  const imagem = req.file ? req.file.filename : null;
+
+  const sql = "UPDATE cliente SET nome = ?, email = ?, telefone = ?, afinidade = ?, imagem = ? WHERE id = ?";
+  db.query(sql, [nome, email, telefone, afinidade, imagem, parseInt(id, 10)], (err, result) => {
+    if (err) {
+      console.error("Erro ao atualizar cliente:", err);
+      return res.status(500).send("Erro ao atualizar cliente.");
+    }
+    res.send("Cliente atualizado com sucesso!");
+  });
+});
+
+app.delete("/clientes/:id", (req, res) => {
+  const { id } = req.params;
+
+  const sql = "DELETE FROM cliente WHERE id = ?";
+  db.query(sql, [parseInt(id, 10)], (err, result) => {
+    if (err) {
+      console.error("Erro ao deletar cliente:", err);
+      return res.status(500).send("Erro ao deletar cliente.");
+    }
+    res.send("Cliente deletado com sucesso!");
+  });
+});
+
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
 app.listen(8080, () => {
   console.log("Servidor rodando em http://localhost:8080");
 });

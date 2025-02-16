@@ -26,7 +26,7 @@ db.connect(err => {
 const storage = multer.diskStorage({
   destination: "./uploads",
   filename: (req, file, cb) => {
-    cb(null, file.originalname);
+    cb(null, Date.now() + path.extname(file.originalname)); // Adiciona timestamp ao nome do arquivo
   }
 });
 
@@ -56,18 +56,46 @@ app.get("/clientes", (req, res) => {
   });
 });
 
+app.get("/clientes/:id", (req, res) => {
+  const { id } = req.params;
+  const sql = "SELECT * FROM cliente WHERE id = ?";
+  db.query(sql, [parseInt(id, 10)], (err, result) => {
+    if (err) {
+      console.error("Erro ao buscar cliente:", err);
+      return res.status(500).send("Erro ao buscar cliente.");
+    }
+    if (result.length === 0) {
+      return res.status(404).send("Cliente não encontrado");
+    }
+    res.json(result[0]);
+  });
+});
+
 app.put("/clientes/:id", upload.single("imagem"), (req, res) => {
   const { id } = req.params;
   const { nome, email, telefone, afinidade } = req.body;
   const imagem = req.file ? req.file.filename : null;
 
   const sql = "UPDATE cliente SET nome = ?, email = ?, telefone = ?, afinidade = ?, imagem = ? WHERE id = ?";
-  db.query(sql, [nome, email, telefone, afinidade, imagem, id], (err, result) => {
+  db.query(sql, [nome, email, telefone, afinidade, imagem, parseInt(id, 10)], (err, result) => {
     if (err) {
       console.error("Erro ao atualizar cliente:", err);
       return res.status(500).send("Erro ao atualizar cliente.");
     }
     res.send("Cliente atualizado com sucesso!");
+  });
+});
+
+app.delete("/clientes/:id", (req, res) => {
+  const { id } = req.params;
+
+  const sql = "DELETE FROM cliente WHERE id = ?";
+  db.query(sql, [parseInt(id, 10)], (err, result) => {
+    if (err) {
+      console.error("Erro ao deletar cliente:", err);
+      return res.status(500).send("Erro ao deletar cliente.");
+    }
+    res.send("Cliente deletado com sucesso!");
   });
 });
 

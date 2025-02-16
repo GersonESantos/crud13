@@ -41,7 +41,7 @@ async function carregarClientes() {
 }
 
 async function editarCliente(event) {
-    const id = event.target.getAttribute("data-id");
+    const id = parseInt(event.target.getAttribute("data-id"), 10);
     try {
         const response = await fetch(`http://localhost:8080/clientes/${id}`);
         const cliente = await response.json();
@@ -56,7 +56,7 @@ async function editarCliente(event) {
 }
 
 async function excluirCliente(event) {
-    const id = event.target.getAttribute("data-id");
+    const id = parseInt(event.target.getAttribute("data-id"), 10);
     try {
         const response = await fetch(`http://localhost:8080/clientes/${id}`, {
             method: "DELETE"
@@ -87,6 +87,30 @@ document.getElementById("clienteForm").addEventListener("submit", async (e) => {
         carregarClientes(); // Atualiza a lista de clientes
     } catch (error) {
         console.error(`Erro ao ${id ? "atualizar" : "cadastrar"} cliente:`, error); // Exibe um erro no console se a requisição falhar
+    }
+});
+
+// Função para buscar cliente pelo ID e preencher o formulário
+document.getElementById("buscarCliente").addEventListener("click", async () => {
+    const id = parseInt(document.getElementById("clienteIdBusca").value, 10);
+    if (!id) {
+        alert("Por favor, insira um ID de cliente.");
+        return;
+    }
+    try {
+        const response = await fetch(`http://localhost:8080/clientes/${id}`);
+        if (!response.ok) {
+            throw new Error("Cliente não encontrado");
+        }
+        const cliente = await response.json();
+        document.getElementById("clienteId").value = cliente.id;
+        document.getElementById("nome").value = cliente.nome;
+        document.getElementById("email").value = cliente.email;
+        document.getElementById("telefone").value = cliente.telefone;
+        document.getElementById("afinidade").value = cliente.afinidade;
+    } catch (error) {
+        console.error("Erro ao buscar cliente:", error);
+        alert("Erro ao buscar cliente: " + error.message);
     }
 });
 

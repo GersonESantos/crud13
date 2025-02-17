@@ -26,9 +26,16 @@ db.connect(err => {
 const storage = multer.diskStorage({
   destination: "./uploads",
   filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname)); // Adiciona timestamp ao nome do arquivo
+    cb(null, file.originalname); // Mantém o nome original do arquivo
   }
 });
+
+// const storage = multer.diskStorage({
+//   destination: "./uploads",
+//   filename: (req, file, cb) => {
+//     cb(null, Date.now() + path.extname(file.originalname)); // Adiciona timestamp ao nome do arquivo
+//   }
+// });
 
 const upload = multer({ storage });
 
